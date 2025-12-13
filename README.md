@@ -28,22 +28,22 @@ AutoGluon 내부의 `eval_metric(rmse/mae)`는 **학습 과정에서의 내부 �
 ---
 
 ## 2. 디렉토리 구조
-├── data/
-│ ├── train.csv
-│ ├── test.csv # index: game_id, game_episode, path
-│ └── test/.../{game_episode}.csv
-├── artifacts/ # preprocess outputs
-│ ├── features_train_k3.parquet
-│ ├── labels_train_k3.parquet
-│ ├── features_test_k3.parquet
-│ ├── ...
-│ └── test_index.csv
-├── models_ag/ # trained predictors + meta
-│ ├── predictor_endx...
-│ ├── predictor_endy...
-│ └── model_meta.json
-├── ag_tmp/ # fold-level temporary predictors (auto cleaned)
-├── oof_cache/ # cached OOF 결과 (pkl)
+├── data/  
+│ ├── train.csv  
+│ ├── test.csv # index: game_id, game_episode, path  
+│ └── test/.../{game_episode}.csv  
+├── artifacts/ # preprocess outputs  
+│ ├── features_train_k3.parquet  
+│ ├── labels_train_k3.parquet  
+│ ├── features_test_k3.parquet  
+│ ├── ...  
+│ └── test_index.csv  
+├── models_ag/ # trained predictors + meta  
+│ ├── predictor_endx...  
+│ ├── predictor_endy...  
+│ └── model_meta.json  
+├── ag_tmp/ # fold-level temporary predictors (auto cleaned)  
+├── oof_cache/ # cached OOF 결과 (pkl)  
 └── submission.csv
 
 ---
