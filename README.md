@@ -122,9 +122,9 @@ Branching은 `result_name`(예: Successful/Unsuccessful)에 따라
 - **타깃 라벨**: 마지막 Pass의 `(end_x, end_y)`
 - **평가(모델 선택 기준)**: 평균 유클리드 거리
 
-$
-\text{score} = \frac{1}{N}\sum_{i=1}^N \sqrt{(x_i-\hat x_i)^2 + (y_i-\hat y_i)^2}
-$
+```math
+score = \frac{1}{N}\sum_{i=1}^N \sqrt{(x_i-\hat x_i)^2 + (y_i-\hat y_i)^2}
+```
 
 AutoGluon 내부의 `eval_metric(rmse/mae)`는 **학습 과정에서의 내부 기준**이고, 최종 후보 비교는 항상 **유클리드 OOF score**로 합니다.
 
