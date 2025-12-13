@@ -1,14 +1,11 @@
 # Last-Pass End Location Prediction (preprocess + AutoGluon)
 
-이 저장소는 **축구 이벤트 로그**에서 각 `game_episode`의 **마지막 Pass**를 예측 대상으로 삼아, 해당 패스의 **도착 좌표 `(end_x, end_y)`**를 회귀로 예측하는 파이프라인입니다.
+이 저장소는 **축구 이벤트 로그**에서 각 `game_episode`의 **마지막 Pass**를 예측 대상으로 삼아, 해당 패스의 **도착 좌표** `(end_x, end_y)`를 회귀로 예측하는 파이프라인입니다.
 
 - `preprocess.ipynb`  
   → **train/test 이벤트 로드 → 마지막 Pass 샘플 생성(에피소드당 1행) → 피처 생성 → k_prev 버전별 저장**
 - `train_autogluon.ipynb`  
   → **GroupKFold(game_id) OOF 평가(유클리드) 기반으로 k_prev/피처/메트릭/분기/후처리를 선택하고 최종 제출 파일 생성**
-
-> ⚠️ 주의: 본 문서는 제공된 노트북 코드(preprocess/train_autogluon)의 동작을 “그대로 설명”합니다.  
-> 데이터 스키마(컬럼 의미, episode/period 정의 등)가 대회/데이터 문서와 다를 경우 결과가 달라질 수 있습니다(확실하지 않음).
 ---
 ## 0. 용어/개념 정리 (중요)
 
@@ -18,17 +15,15 @@
 
 `k_prev`는 **마지막 Pass(예측 대상) 직전에 일어난 이벤트를 몇 개까지 피처로 사용할지**를 의미합니다.
 
-- `k_prev = 3`  
-  → 마지막 Pass 직전의 3개 이벤트 정보를 피처로 붙임
-- `k_prev = 10`  
-  → 마지막 Pass 직전의 10개 이벤트 정보를 피처로 붙임
+- `k_prev = 3` → 마지막 Pass 직전의 3개 이벤트 정보를 피처로 붙임
+- `k_prev = 10` → 마지막 Pass 직전의 10개 이벤트 정보를 피처로 붙임
 
 구현 방식은 `groupby(game_episode).shift(i)`로, 직전 이벤트들의 정보를 `prev{i}_...` 형태의 컬럼으로 생성합니다.
 
 예시(개념):
 - `prev1_type_name` : 마지막 Pass 직전 1번째 이벤트의 type  
 - `prev2_start_x`   : 직전 2번째 이벤트의 시작 x  
-- `prev5_dist_move` : 직전 5번째 이벤트의 이동 거리 등
+- `prev5_dist_move` : 직전 5번째 이벤트의 이동 거리
 
 왜 `k_prev`를 탐색하나?
 - 너무 작으면: 직전 맥락 정보가 부족해 예측이 어려워질 수 있음
@@ -52,14 +47,12 @@ Pruning은 **피처(입력 변수) 수를 줄이는 과정**입니다.
 
 이 노트북의 pruning은 “누수 완화”를 의도해 아래처럼 수행합니다.
 
-✅ 누수 완화 pruning 방식(코드 기준)
+✅ 누수 완화 pruning 방식
 - CV에서 각 fold마다 **train subset(tr_idx)만**으로 모델을 학습
 - 그 train subset에서 importance를 계산
 - fold별 importance를 평균내 Top-N을 선택
 
 즉, valid fold를 보고 importance를 계산하는 것을 피하려는 구조입니다.
-
-> 참고: AutoGluon `feature_importance()`의 내부 방식은 모델/버전에 따라 달라질 수 있어, “완전한 누수 없음”을 여기서 단정할 수는 없습니다(확실하지 않음).
 
 ---
 
@@ -118,9 +111,8 @@ Branching은 `result_name`(예: Successful/Unsuccessful)에 따라
 - x: start_x 기준으로 전진/후진 변위를 `forward_scale`만큼 스케일
 - y: 중앙선(GOAL_Y=34) 기준 편차를 `lateral_shrink`만큼 줄임/늘림
 - 이후 경기장 범위로 클리핑
+후처리는 OOF 예측에 대해 grid search로 튜닝하고, 실제 점수가 내려가면 최종 제출에도 적용합니다.
 
-후처리는 OOF 예측에 대해 grid search로 튜닝하고,
-실제 점수가 내려가면 최종 제출에도 적용합니다.
 ---
 
 ## 1. 문제 정의(이 파이프라인 관점)
@@ -130,9 +122,9 @@ Branching은 `result_name`(예: Successful/Unsuccessful)에 따라
 - **타깃 라벨**: 마지막 Pass의 `(end_x, end_y)`
 - **평가(모델 선택 기준)**: 평균 유클리드 거리
 
-\[
+$
 \text{score} = \frac{1}{N}\sum_{i=1}^N \sqrt{(x_i-\hat x_i)^2 + (y_i-\hat y_i)^2}
-\]
+$
 
 AutoGluon 내부의 `eval_metric(rmse/mae)`는 **학습 과정에서의 내부 기준**이고, 최종 후보 비교는 항상 **유클리드 OOF score**로 합니다.
 
@@ -277,9 +269,6 @@ object 타입 컬럼의 결측치는 `fill_object_missing()`으로 `"MISSING"`�
 - feature importance 계산(pruning)
 - 최종 전체 학습
 - 테스트 예측
-
-> 주의: 이 함수는 `dtype == object`만 대상으로 합니다.  
-> categorical dtype이 섞여 있다면 동일하게 처리되지 않을 수 있습니다(확실하지 않음).
 
 ### 4.4 임시 predictor 폴더 정리(try/finally)
 
